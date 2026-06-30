@@ -16,6 +16,7 @@ def makemesh(size, scale, p, seed=42, showGraph=False, exportGraph=True):
     global r_node
     r_node = np.ceil(10*r_max)/10
     print(f"l: {link_length:.2f}mm, r_min: {r_min:.2f}mm,\nr_max: {r_max:.2f}, r_node: {r_node}mm")
+    print(f'max square len: {equivalent_square(r_max):.2f}, min square len: {equivalent_square(r_min):.2f}')
     np.random.seed(seed)
     #endregion
 
