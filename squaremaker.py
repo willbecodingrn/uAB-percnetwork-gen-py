@@ -16,6 +16,7 @@ def makemesh(size, scale, p, seed=42, showGraph=False, exportGraph=True):
     global r_node
     r_node = np.ceil(10*r_max)/10
     print(f"l: {link_length:.2f}mm, r_min: {r_min:.2f}mm,\nr_max: {r_max:.2f}, r_node: {r_node}mm")
+    print(f'max square len: {equivalent_square(r_max):.2f}, min square len: {equivalent_square(r_min):.2f}')
     np.random.seed(seed)
     #endregion
 
@@ -49,7 +50,6 @@ def makemesh(size, scale, p, seed=42, showGraph=False, exportGraph=True):
     radii = []
 
     #assigning radii and tau
-    #link_length = 2.6 #average actual link length
     for n in links: 
         r = np.random.uniform(r_min,r_max)
         n[2]['r'] = r
@@ -70,10 +70,9 @@ def makemesh(size, scale, p, seed=42, showGraph=False, exportGraph=True):
 
     #region graph mesh
     t_s = time.time()
-    print('rendering figure', end='')
     on_links = [(u,v) for u,v, d in G.edges(data=True) if d.get('active', True)]
     off_links = [(u,v) for u, v, d in G.edges(data=True) if not d.get('active', True)]
-    plt.figure(figsize=(size+1,size+1))
+    plt.figure(figsize=(10, 10), dpi=400)
     nx.draw_networkx_edges(G, pos, edgelist=off_links, alpha=0.1)
     nx.draw_networkx_edges(G, pos, edgelist=on_links, width=20*radii)
     nx.draw_networkx_nodes(G, pos, node_size=r_node)
@@ -84,7 +83,7 @@ def makemesh(size, scale, p, seed=42, showGraph=False, exportGraph=True):
     
     print(f'\rfigure exported, took {(t_e - t_s)/60:.2f} mins')
     if showGraph: plt.show()
-    if not (showGraph or exportGraph): plt.close('all')
+    if not showGraph: plt.close('all')
     #endregion
 
     return G, pos, pc
@@ -92,6 +91,8 @@ def makemesh(size, scale, p, seed=42, showGraph=False, exportGraph=True):
 def buildmesh(mesh: nx.Graph, p, pos, height, size, scale, seed=42):
     on_nodes = set()
     mainPlane = cq.Plane(origin=(0, 0, height), normal=(0, 0, 1))
+
+
     #region form links
     links = []
 
@@ -118,9 +119,8 @@ def buildmesh(mesh: nx.Graph, p, pos, height, size, scale, seed=42):
         link = profile.sweep(path)
         links.append(link.val())
 
-    compound = cq.Compound.makeCompound(links)
-    network = cq.Workplane(obj=compound)
-
+    links = cq.Compound.makeCompound(links)
+    
     t_e = time.time()
     print(f'\rformed links, took: {((t_e-t_s) / 60):.2f} mins')
     #endregion
@@ -136,24 +136,26 @@ def buildmesh(mesh: nx.Graph, p, pos, height, size, scale, seed=42):
         .extrude(-height)
     )
 
-    network = network.union(nodes)
+    nodes = cq.Compound.makeCompound(nodes)
     t_e = time.time()
     print(f'\rformed nodes, took: {((t_e-t_s)/60):.2f} mins')
     #endregion
 
+    #region exporting STEP
+    #making a block
     t_s = time.time()
     print('rendering object', end='')
-    network = network.combine()
-    
     block = (cq.Workplane("XY").box(size*scale, size*scale, height,
                                     centered=(True, True, False)))
-    porous = block.cut(network)
+    porous = block.cut(nodes)
+    porous = porous.cut(links)
     t_e = time.time()
     print(f'\rrendered object, took: {((t_e-t_s)/60):.2f} mins')
 
     label = 'c' if p == threshold else f'{p:.2f}'
     cq.exporters.export(porous, f"outputs/step/SD{seed}-p{label}-{size}n-{scale}x{height}.step")
     print('STEP file exported')
+    #endregion
 
 def equivalent_square(r):
     pi = np.pi

@@ -1,5 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
 
 def pathfind(mesh: nx.Graph):
     size = max(n[0] for n in mesh.nodes) + 1
@@ -54,7 +55,9 @@ def save_min_path(mesh: nx.Graph, pos, path, p, pc, seed=42):
     on_links = [(u,v) for u, v, d in mesh.edges(data=True) if d.get('active', True)]
     off_links = [(u,v) for u, v, d in mesh.edges(data=True) if d.get('active', False)]
     radii = [d['r'] for _, _, d in mesh.edges(data=True)]
-    plt.figure(figsize=(size+1, size+1))
+
+    dpi = rcParams["figure.dpi"]
+    plt.figure(figsize=(10, 10), dpi=400)
     nx.draw_networkx_edges(mesh, pos, edgelist=on_links, width=20*radii)
     nx.draw_networkx_edges(mesh, pos, edgelist=off_links, alpha=0.1)
     nx.draw_networkx_nodes(mesh, pos, node_size=10, node_color='black')
