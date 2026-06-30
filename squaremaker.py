@@ -119,9 +119,8 @@ def buildmesh(mesh: nx.Graph, p, pos, height, size, scale, seed=42):
         link = profile.sweep(path)
         links.append(link.val())
 
-    compound = cq.Compound.makeCompound(links)
-    network = cq.Workplane(obj=compound)
-
+    links = cq.Compound.makeCompound(links)
+    
     t_e = time.time()
     print(f'\rformed links, took: {((t_e-t_s) / 60):.2f} mins')
     #endregion
@@ -136,24 +135,27 @@ def buildmesh(mesh: nx.Graph, p, pos, height, size, scale, seed=42):
         .circle(r_node)
         .extrude(-height)
     )
-    print('formed nodes')
-    network = network.union(nodes)
+
+    nodes = cq.Compound.makeCompound(nodes)
     t_e = time.time()
     print(f'\rformed nodes, took: {((t_e-t_s)/60):.2f} mins')
     #endregion
 
+    #region exporting STEP
+    #making a block
     t_s = time.time()
     print('rendering object', end='')
-    network = network.combine()
     block = (cq.Workplane("XY").box(size*scale, size*scale, height,
                                     centered=(True, True, False)))
-    porous = block.cut(network)
+    porous = block.cut(nodes)
+    porous = porous.cut(links)
     t_e = time.time()
     print(f'\rrendered object, took: {((t_e-t_s)/60):.2f} mins')
 
     label = 'c' if p == threshold else f'{p:.2f}'
     cq.exporters.export(porous, f"outputs/step/SD{seed}-p{label}-{size}n-{scale}x{height}.step")
     print('STEP file exported')
+    #endregion
 
 def equivalent_square(r):
     pi = np.pi

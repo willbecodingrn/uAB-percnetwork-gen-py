@@ -2,7 +2,7 @@ import time
 t_s = time.time()
 import dijkstra as djk
 import squaremaker as sm
-L = 40 #amount of nodes in x and y directions
+L = 64 #amount of nodes in x and y directions
 k = 2.5 #scale factor in mm
 h = 2 #height of sample in mm
 seed = 42
@@ -23,5 +23,5 @@ path, cost = djk.pathfind(active)
 print(f'pressure threshold: {cost:.2f}')
 
 t_e = time.time()
-djk.save_min_path(G, pos, path, p, pc, seed=seed) #takes p
+#djk.save_min_path(G, pos, path, p, pc, seed=seed) #takes p
 print(f'program runtime: {((t_e - t_s) / 60):.3f} mins')
