@@ -4,9 +4,11 @@ import time
 import newmanziff as nz
 
 rt2 = np.sqrt(2)
-t_c = 3.29
+#update these as needed
+tension = 0.0579
+t_c = 4.4167582
 
-def makemesh(size, scale, p, seed=42, showGraph=False, exportGraph=True):
+def makemesh(size, scale, p, seed=42, showGraph=False, exportGraph=True, theta=0):
     #region init vars
     LX = size
     LY = size // 2
@@ -35,7 +37,7 @@ def makemesh(size, scale, p, seed=42, showGraph=False, exportGraph=True):
         for j in range(LY):
             if i%2:
                 if j <= LY-1 and i < LX-1: 
-                    if j >= 1: G.add_edge((i, j),(i+1,j-1), r=1,active=False)
+                    if j >= 1: G.add_edge((i, j),(i+1,j-1), r=1, active=False)
                     G.add_edge((i,j),(i+1, j),r=1, active=False)
             else:
                 if j <= LY-1 and i < LX-1: 
@@ -49,12 +51,13 @@ def makemesh(size, scale, p, seed=42, showGraph=False, exportGraph=True):
     links = list(G.edges(data=True))
     radii = []
 
-    #assigning radii and tau
+    #assigning radii and weights
     #link_length = 2.6 #average actual link length
     for n in links: 
         r = np.random.uniform(r_min,r_max)
         n[2]['r'] = r
         n[2]['tau'] = (2*t_c*link_length)/(r) #link_length and r in mm -> units cancel
+        n[2]['P_cap'] = (2+ np.sqrt(np.pi))*tension*np.cos(theta)/equivalent_square(r) #this equation needs to be changed for circular profile
         radii.append(r)
         #print(n[2])                    #for debugging
     
@@ -70,20 +73,21 @@ def makemesh(size, scale, p, seed=42, showGraph=False, exportGraph=True):
         if n[2]['r'] <= r_gate: n[2]['active'] = True
 
     #region graph mesh
-    t_s = time.time()
-    print('rendering figure', end='')
-    on_links = [(u,v) for u,v, d in G.edges(data=True) if d.get('active', True)]
-    off_links = [(u,v) for u, v, d in G.edges(data=True) if not d.get('active', True)]
-    plt.figure(figsize=(size+1,size+1))
-    nx.draw_networkx_edges(G, pos, edgelist=off_links, alpha=0.1)
-    nx.draw_networkx_edges(G, pos, edgelist=on_links, width=20*radii)
-    nx.draw_networkx_nodes(G, pos, node_size=r_node)
+    if exportGraph or showGraph:
+        t_s = time.time()
+        print('rendering figure', end='')
+        on_links = [(u,v) for u,v, d in G.edges(data=True) if d.get('active', True)]
+        off_links = [(u,v) for u, v, d in G.edges(data=True) if not d.get('active', True)]
+        plt.figure(figsize=(size+1,size+1))
+        nx.draw_networkx_edges(G, pos, edgelist=off_links, alpha=0.1)
+        nx.draw_networkx_edges(G, pos, edgelist=on_links, width=20*radii)
+        nx.draw_networkx_nodes(G, pos, node_size=r_node*100)
 
-    plt.axis('equal')
+        plt.axis('equal')
     if exportGraph: plt.savefig(f"outputs/figures/SD{seed}-p{round(p, 3) if p!=pc else 'c'}-{size}n.png", dpi=300, bbox_inches="tight")
-    t_e = time.time()
-    
-    print(f'\rfigure exported, took {(t_e - t_s)/60:.2f} mins')
+    if exportGraph or showGraph: 
+        t_e = time.time()
+        print(f'\rfigure exported, took {(t_e - t_s)/60:.2f} mins')
     if showGraph: plt.show()
     if not (showGraph or exportGraph): plt.close('all')
     #endregion
@@ -160,3 +164,82 @@ def equivalent_square(r):
     pi = np.pi
     j = 0.4217315309944166
     return 2*((3*pi)/(32*j))**(1/4)*r
+
+def make_uniform(size, scale, p, seed=42, showGraph=False, exportGraph=False):
+    #region init vars
+    LX = size
+    LY = size // 2
+    link_length = scale/rt2/1.64
+    r = 0.245*link_length
+    r_max = 0.32*link_length
+    global r_node
+    r_node = np.ceil(10*r_max)/10
+    print(f"l: {link_length:.2f}mm, r: {r:.2f}mm, r_node: {r_node}mm")
+    if p: np.random.seed(seed)
+    #endregion
+
+    #region init mesh
+    G = nx.Graph()
+    pos = {}
+    #nodes
+    for i in range(LX):
+        for j in range(LY):
+            x = 0.5*i*scale
+            y = scale*(j-0.5) if i%2 else j*scale
+            G.add_node((i, j))
+            pos[(i,j)] = (x,y)
+    #links
+    for i in range(LX):
+        for j in range(LY):
+            if i%2:
+                if j <= LY-1 and i < LX-1: 
+                    if j >= 1: G.add_edge((i, j),(i+1,j-1), r=r,active=False)
+                    G.add_edge((i,j),(i+1, j),r=1, active=False)
+            else:
+                if j <= LY-1 and i < LX-1: 
+                    if j< LY-1: G.add_edge((i, j), (i+1, j+1),r=r,active=False)
+                    G.add_edge((i,j), (i+1, j),r=1,active=False)
+
+    links = list(G.edges(data=True))
+    radii = []
+    key = []
+
+    for n in links:
+        n[2]['r'] = r
+        n[2]['tau'] = (2*t_c*link_length)/(r)
+        n[2]['key'] = np.random.uniform(0, 1)
+        radii.append(r)
+
+    pc,_ = nz.percolate(G, size)
+    global threshold
+    threshold = pc
+    if p:
+        links_sorted = sorted(links, key=lambda e: e[2]['key'])
+        gate = links_sorted[int((1-p)*len(links))][2]['key'] #smallest to largest
+        for n in links:
+            if n[2]['key'] >= gate: n[2]['active'] = True
+    else:
+        for n in links: n[2]['active'] = True
+    #endregion
+
+    #region graph mesh
+    if exportGraph or showGraph:
+        t_s = time.time()
+        print('rendering figure', end='')
+        on_links = [(u,v) for u,v, d in G.edges(data=True) if d.get('active', True)]
+        off_links = [(u,v) for u, v, d in G.edges(data=True) if not d.get('active', True)]
+        plt.figure(figsize=(size+1,size+1))
+        nx.draw_networkx_edges(G, pos, edgelist=off_links, alpha=0.1)
+        nx.draw_networkx_edges(G, pos, edgelist=on_links, width=20*radii)
+        nx.draw_networkx_nodes(G, pos, node_size=r_node)
+
+        plt.axis('equal')
+    if exportGraph: plt.savefig(f"outputs/figures/SD{seed}-p{round(p, 3) if p!=pc else 'c'}-{size}n.png", dpi=300, bbox_inches="tight")
+    if exportGraph or showGraph: 
+        t_e = time.time()
+        print(f'\rfigure exported, took {(t_e - t_s)/60:.2f} mins')
+    if showGraph: plt.show()
+    if not (showGraph or exportGraph): plt.close('all')
+    #endregion
+
+    return G, pos, pc
