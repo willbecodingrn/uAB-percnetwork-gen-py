@@ -2,17 +2,17 @@ import time
 t_s = time.time()
 import pathfind as pf
 import squaremaker as sm
-import numpy as np
-L = 8 #amount of nodes in x and y directions
-k = 2.5 #scale factor in mm
-h = 2 #height of sample in mm
+L = 32 #amount of nodes in x and y directions
+k = 4 #scale factor in mm
+h = 5 #height of sample in mm
 seed = 42
 p = 1.00
 
 G, pos, pc = sm.makemesh(L, k, p, exportGraph=True, seed=seed) #takes p
-sm.buildmesh(G, p, pos, h, L, k, seed=seed) #takes p
-print(f"percolation threshold: {pc*100:.4f}%")
 active = pf.active_net(G)
+sm.buildmesh(active, p, pos, h, L, k, seed=seed) #takes p
+print(f"percolation threshold: {pc*100:.4f}%")
+
 
 '''
 for u, v, d in G.edges(data=True):
