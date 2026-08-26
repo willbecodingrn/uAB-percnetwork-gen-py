@@ -13,7 +13,6 @@ active = pf.active_net(G)
 sm.buildmesh(active, p, pos, h, L, k, seed=seed) #takes p
 print(f"percolation threshold: {pc*100:.4f}%")
 
-
 '''
 for u, v, d in G.edges(data=True):
     print(f'from {u} to {v}:', end='')
