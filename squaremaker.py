@@ -56,8 +56,8 @@ def makemesh(size, scale, p, seed=42, showGraph=False, exportGraph=True, theta=0
     for n in links: 
         r = np.random.uniform(r_min,r_max)
         n[2]['r'] = r
-        n[2]['tau'] = (2*t_c*link_length)/(r) #link_length and r in mm -> units cancel
-        n[2]['P_cap'] = (2+ np.sqrt(np.pi))*tension*np.cos(theta)/equivalent_square(r) #this equation needs to be changed for circular profile
+        n[2]['tau'] = (4*t_c*link_length)/(equivalent_square(r))
+        n[2]['P_cap'] = (2+ np.sqrt(np.pi))*tension*np.cos(theta)/equivalent_square(r)
         radii.append(r)
         #print(n[2])                    #for debugging
     
@@ -165,7 +165,7 @@ def equivalent_square(r):
     j = 0.4217315309944166
     return 2*((3*pi)/(32*j))**(1/4)*r
 
-def make_uniform(size, scale, p, seed=42, showGraph=False, exportGraph=False):
+def make_uniform(size, scale, p, seed=42, showGraph=False, exportGraph=False, theta=0):
     #region init vars
     LX = size
     LY = size // 2
@@ -206,7 +206,8 @@ def make_uniform(size, scale, p, seed=42, showGraph=False, exportGraph=False):
 
     for n in links:
         n[2]['r'] = r
-        n[2]['tau'] = (2*t_c*link_length)/(r)
+        n[2]['tau'] = (4*t_c*link_length)/(equivalent_square(r))
+        n[2]['P_cap'] = (2+ np.sqrt(np.pi))*tension*np.cos(theta)/equivalent_square(r)
         n[2]['key'] = np.random.uniform(0, 1)
         radii.append(r)
 

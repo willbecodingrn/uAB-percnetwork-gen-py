@@ -169,7 +169,7 @@ def buildmesh(mesh: nx.Graph, p, pos, height, size, scale, seed=42):
     cq.exporters.export(porous, f"outputs/step/SD{seed}-p{label}-{size}n-{scale}x{height}.step")
     print('STEP file exported')
 
-def make_uniform(size, scale, p, seed=42, showGraph=False, exportGraph=False):
+def make_uniform(size, scale, p, seed=42, showGraph=False, exportGraph=False, theta=0):
     #region init vars
     LX = size
     LY = size // 2
@@ -211,6 +211,7 @@ def make_uniform(size, scale, p, seed=42, showGraph=False, exportGraph=False):
     for n in links:
         n[2]['r'] = r
         n[2]['tau'] = (2*t_c*link_length)/(r)
+        n[2]['P_cap'] = 2*np.cos(theta)*tension / r
         n[2]['key'] = np.random.uniform(0, 1)
         radii.append(r)
 
