@@ -68,7 +68,7 @@ def save_min_path(mesh: nx.Graph, pos, path, p, pc, seed=42):
     plt.axis('equal')
     plt.savefig(f"outputs/figures/SD{seed}-p{round(p,3) if p!=pc else 'c'}-{size}n-path.png", dpi=300, bbox_inches="tight")
 
-def active_net(mesh):
+def active_net(mesh: nx.Graph):
     N = nx.Graph()
     N.add_nodes_from(mesh.nodes(data=True))
 
